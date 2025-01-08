@@ -1,0 +1,39 @@
+/project-root
+    /backend
+        /database
+            - schema.sql                          # 資料庫結構定義
+        /models
+            - goddess.py                          # 女神模型
+            - skill_card.py                       # 技能卡片模型
+            - ultimate_card.py                    # 王牌卡片模型
+            - player.py                           # 玩家模型
+        /controllers
+            - game_controller.py                  # 遊戲控制器，處理遊戲邏輯
+        /routes
+            - api.py                              # 定義API路由
+        - app.py                                  # 主應用程序文件
+        - config.py                               # 配置文件
+    /frontend
+        /src
+            /components
+                - GameBoard.jsx                   # 遊戲版圖組件
+                - PlayerInfo.jsx                  # 玩家信息組件
+            /pages
+                - Home.jsx                        # 主頁
+                - Game.jsx                        # 遊戲頁面
+            /assets
+                - styles.css                      # 样式表
+        - index.js                                # 前端入口文件
+        - App.js                                  # 前端主應用文件
+    /docs
+        - README.md                               # 項目說明文件
+        - API.md                                  # API文檔
+        - DB_SCHEMA.md                            # 資料庫結構文檔
+    /tests
+        /backend
+            - test_game_controller.py             # 測試遊戲控制器
+        /frontend
+            - test_GameBoard.jsx                  # 測試遊戲版圖組件
+    - .gitignore                                  # Git忽略文件
+    - requirements.txt                            # 後端依賴文件
+    - package.json                                # 前端依賴文件
