@@ -1,0 +1,224 @@
+// Sakura Duel – Minimal Playable Core (v0)
+// Pure C# (no Unity dependency)
+// Goal: Turn loop + basic actions + state transition
+
+using System;
+using System.Collections.Generic;
+
+namespace SakuraDuel.Core
+{
+    #region Game State
+
+    public class GameState
+    {
+        public PlayerState[] Players { get; }
+        public Battlefield Battlefield { get; }
+
+        public int CurrentPlayerIndex { get; private set; } = 0;
+        public TurnPhase Phase { get; private set; } = TurnPhase.TurnStart;
+        public int TurnCount { get; private set; } = 1;
+
+        public GameState()
+        {
+            Players = new PlayerState[]
+            {
+                new PlayerState("Player A"),
+                new PlayerState("Player B")
+            };
+
+            Battlefield = new Battlefield();
+        }
+
+        public PlayerState CurrentPlayer => Players[CurrentPlayerIndex];
+        public PlayerState Opponent => Players[1 - CurrentPlayerIndex];
+
+        public void AdvancePhase()
+        {
+            switch (Phase)
+            {
+                case TurnPhase.TurnStart:
+                    Phase = TurnPhase.Action;
+                    break;
+
+                case TurnPhase.Action:
+                    Phase = TurnPhase.TurnEnd;
+                    break;
+
+                case TurnPhase.TurnEnd:
+                    EndTurn();
+                    break;
+            }
+        }
+
+        private void EndTurn()
+        {
+            CurrentPlayerIndex = 1 - CurrentPlayerIndex;
+            TurnCount++;
+            Phase = TurnPhase.TurnStart;
+        }
+    }
+
+    public class PlayerState
+    {
+        public string Name { get; }
+
+        public int Life { get; set; } = 10;
+        public int Armor { get; set; } = 3;
+        public int ArmorMax { get; } = 5;
+        public int Aura { get; set; } = 0;   // 氣
+        public int Focus { get; set; } = 0;  // 集中力
+
+        public PlayerState(string name)
+        {
+            Name = name;
+        }
+    }
+
+    public class Battlefield
+    {
+        public int Distance { get; set; } = 10;  // 距
+        public int Void { get; set; } = 0;        // 虛
+        public int MasterDistance { get; set; } = 2;
+    }
+
+    #endregion
+
+    #region Actions
+
+    public enum ActionType
+    {
+        Forward,
+        Backward,
+        Defend,
+        Gather,
+        EndTurn
+    }
+
+    public class ActionCommand
+    {
+        public ActionType Type { get; }
+        public int ActorIndex { get; }
+
+        public ActionCommand(ActionType type, int actorIndex)
+        {
+            Type = type;
+            ActorIndex = actorIndex;
+        }
+    }
+
+    #endregion
+
+    #region Resolver
+
+    public static class ActionResolver
+    {
+        public static void Resolve(GameState game, ActionCommand action)
+        {
+            var actor = game.Players[action.ActorIndex];
+            var field = game.Battlefield;
+
+            switch (action.Type)
+            {
+                case ActionType.Forward:
+                    field.Distance -= 1;
+                    actor.Armor += 1;
+                    break;
+
+                case ActionType.Backward:
+                    actor.Armor -= 1;
+                    field.Distance += 1;
+                    break;
+
+                case ActionType.Defend:
+                    field.Void -= 1;
+                    actor.Armor += 1;
+                    break;
+
+                case ActionType.Gather:
+                    actor.Armor -= 1;
+                    actor.Aura += 1;
+                    break;
+
+                case ActionType.EndTurn:
+                    game.AdvancePhase();
+                    break;
+            }
+        }
+    }
+
+    #endregion
+
+    #region Phases
+
+    public enum TurnPhase
+    {
+        TurnStart,
+        Action,
+        TurnEnd
+    }
+
+    #endregion
+
+    #region Demo Program
+
+    class Program
+    {
+        static void Main()
+        {
+            var game = new GameState();
+
+            Console.WriteLine("=== Sakura Duel : Minimal C# Core ===");
+
+            while (true)
+            {
+                PrintState(game);
+
+                if (game.Phase == TurnPhase.TurnStart)
+                {
+                    game.CurrentPlayer.Focus += 1;
+                    Console.WriteLine($"{game.CurrentPlayer.Name} gains 1 Focus");
+                    game.AdvancePhase();
+                }
+                else if (game.Phase == TurnPhase.Action)
+                {
+                    Console.WriteLine("Choose action: [F]orward [B]ackward [D]efend [G]ather [E]nd");
+                    var key = Console.ReadKey(true).Key;
+
+                    ActionCommand action = key switch
+                    {
+                        ConsoleKey.F => new ActionCommand(ActionType.Forward, game.CurrentPlayerIndex),
+                        ConsoleKey.B => new ActionCommand(ActionType.Backward, game.CurrentPlayerIndex),
+                        ConsoleKey.D => new ActionCommand(ActionType.Defend, game.CurrentPlayerIndex),
+                        ConsoleKey.G => new ActionCommand(ActionType.Gather, game.CurrentPlayerIndex),
+                        ConsoleKey.E => new ActionCommand(ActionType.EndTurn, game.CurrentPlayerIndex),
+                        _ => null
+                    };
+
+                    if (action != null)
+                    {
+                        ActionResolver.Resolve(game, action);
+                    }
+                }
+                else if (game.Phase == TurnPhase.TurnEnd)
+                {
+                    game.AdvancePhase();
+                }
+            }
+        }
+
+        static void PrintState(GameState game)
+        {
+            Console.WriteLine("\n----------------------------");
+            Console.WriteLine($"Turn {game.TurnCount} | Phase: {game.Phase}");
+            Console.WriteLine($"Distance: {game.Battlefield.Distance} | Void: {game.Battlefield.Void}");
+
+            foreach (var p in game.Players)
+            {
+                Console.WriteLine($"{p.Name} | Life:{p.Life} Armor:{p.Armor} Aura:{p.Aura} Focus:{p.Focus}");
+            }
+            Console.WriteLine($"Current Player: {game.CurrentPlayer.Name}");
+        }
+    }
+
+    #endregion
+}
